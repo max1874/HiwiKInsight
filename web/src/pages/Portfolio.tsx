@@ -20,7 +20,8 @@ type Row = Record<string, Cell>
 const kindMeta = (): Record<string, { label: string; color: string }> => ({
   iap: { label: t('买断', 'One-time'), color: 'var(--c1)' },
   subscription_new: { label: t('新订阅', 'New subs'), color: 'var(--c2)' },
-  subscription_renewal: { label: t('续订', 'Renewals'), color: 'var(--c5)' },
+  // Apple's sales reports count the first charge after a free trial as a renewal
+  subscription_renewal: { label: t('续订（含试用转付费）', 'Renewals (incl. trial conversions)'), color: 'var(--c5)' },
   paid_download: { label: t('付费下载', 'Paid downloads'), color: 'var(--c3)' },
   other: { label: t('其他', 'Other'), color: 'var(--text-3)' },
 })
@@ -30,7 +31,7 @@ function eventBadge(type: string, subtype: string): { label: string; tone: Tone 
   switch (type) {
     case 'ONE_TIME_CHARGE': return { label: t('买断', 'Purchase'), tone: 'success' }
     case 'SUBSCRIBED': return { label: subtype === 'RESUBSCRIBE' ? t('重新订阅', 'Resubscribed') : t('新订阅', 'New sub'), tone: 'success' }
-    case 'DID_RENEW': return { label: t('续订', 'Renewed'), tone: 'success' }
+    case 'DID_RENEW': return { label: subtype === 'TRIAL_CONVERSION' ? t('试用转付费', 'Trial converted') : t('续订', 'Renewed'), tone: 'success' }
     case 'REFUND': return { label: t('退款', 'Refund'), tone: 'danger' }
     case 'REFUND_REVERSED': return { label: t('退款撤销', 'Refund reversed'), tone: 'success' }
     case 'DID_CHANGE_RENEWAL_STATUS':

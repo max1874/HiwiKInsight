@@ -54,15 +54,21 @@ type mailInput struct {
 	Amount       *float64 // this transaction in the base currency
 	Stats        *store.Stats
 	Attribution  *store.Attribution // in-app context found through appAccountToken; nil when unattributed
+	// TrialConversion: the first charge after a free trial, which Apple reports as a renewal.
+	TrialConversion bool
 }
 
 func buildView(in mailInput) mailView {
 	p, tx := in.Payload, in.Tx
 	fullType := joinNonEmpty("/", p.NotificationType, p.Subtype)
+	subtype := p.Subtype
+	if in.TrialConversion {
+		subtype = store.TrialConversionSubtype
+	}
 	pal := mailer.Palette
 	v := mailView{
 		AppName: in.AppName,
-		Label:   TypeLabel(p.NotificationType, p.Subtype),
+		Label:   TypeLabel(p.NotificationType, subtype),
 		Sandbox: p.Data.Environment != "Production",
 		Accent:  pal.Neutral,
 		P:       pal,

@@ -158,6 +158,12 @@ func (h *Handler) record(in *mailInput) {
 		slog.Info("duplicate notification, not counted again", "notificationUUID", p.NotificationUUID)
 	}
 
+	conversion, err := h.Store.IsTrialConversion(p.NotificationUUID)
+	if err != nil {
+		slog.Error("check trial conversion failed", "error", err, "notificationUUID", p.NotificationUUID)
+	}
+	in.TrialConversion = conversion
+
 	if tx != nil && tx.AppAccountToken != "" {
 		in.Attribution = h.findAttribution(p.NotificationUUID, p.NotificationType)
 	}

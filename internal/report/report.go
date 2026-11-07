@@ -18,6 +18,7 @@ import (
 
 	"github.com/RedHiwiK/HiwiKInsight/internal/i18n"
 	"github.com/RedHiwiK/HiwiKInsight/internal/metrics"
+	"github.com/RedHiwiK/HiwiKInsight/internal/store"
 	"github.com/RedHiwiK/HiwiKInsight/internal/tz"
 )
 
@@ -455,7 +456,7 @@ func (b *builder) transactions(day string) ([]transaction, error) {
 		names[a.Bundle] = a.Name
 	}
 	rs, err := b.db.QueryContext(b.ctx, `
-		SELECT a.bundle_id, a.notification_type, a.subtype, a.product_id, a.revenue_sign, a.price_milli, a.amount, a.currency,
+		SELECT a.bundle_id, a.notification_type, `+store.SubtypeSQL+`, a.product_id, a.revenue_sign, a.price_milli, a.amount, a.currency,
 			a.signed_at, COALESCE(pa.context, '')
 		FROM appstore_events a
 		LEFT JOIN v_attribution v ON v.notification_uuid = a.notification_uuid

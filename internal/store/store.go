@@ -6,6 +6,7 @@ package store
 import (
 	"database/sql"
 	_ "embed"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -116,6 +117,28 @@ func (s *Store) Record(e Event) (inserted bool, err error) {
 	}
 	n, _ := res.RowsAffected()
 	return n > 0, nil
+}
+
+// TrialConversionSubtype marks the first charge after a free trial, which Apple reports
+// as a plain DID_RENEW. It is not an Apple value: SubtypeSQL derives it when reading.
+const TrialConversionSubtype = "TRIAL_CONVERSION"
+
+// SubtypeSQL selects the subtype of an appstore_events row aliased as a.
+const SubtypeSQL = `CASE WHEN a.notification_type = 'DID_RENEW' AND a.original_transaction_id != ''
+		AND EXISTS (SELECT 1 FROM appstore_events t WHERE t.original_transaction_id = a.original_transaction_id
+			AND t.revenue_sign = 1 AND t.price_milli = 0)
+		AND NOT EXISTS (SELECT 1 FROM appstore_events p WHERE p.original_transaction_id = a.original_transaction_id
+			AND p.revenue_sign = 1 AND p.price_milli > 0 AND p.signed_at < a.signed_at)
+		THEN '` + TrialConversionSubtype + `' ELSE a.subtype END`
+
+// IsTrialConversion reports whether a stored notification is the first charge after a free trial.
+func (s *Store) IsTrialConversion(notificationUUID string) (bool, error) {
+	var subtype string
+	err := s.db.QueryRow(`SELECT `+SubtypeSQL+` FROM appstore_events a WHERE a.notification_uuid = ?`, notificationUUID).Scan(&subtype)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	return subtype == TrialConversionSubtype, err
 }
 
 type Period struct {

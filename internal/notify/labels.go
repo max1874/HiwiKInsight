@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/RedHiwiK/HiwiKInsight/internal/i18n"
+	"github.com/RedHiwiK/HiwiKInsight/internal/store"
 )
 
 type pair = i18n.Pair
@@ -14,7 +15,8 @@ var typeLabels = map[string]pair{
 	"SUBSCRIBED":             {"New subscription", "新订阅"},
 	"SUBSCRIBED/RESUBSCRIBE": {"Resubscribed", "重新订阅"},
 	"DID_RENEW":              {"Renewal", "续订"},
-	"DID_FAIL_TO_RENEW":      {"Renewal payment failed", "续订扣款失败"},
+	"DID_RENEW/" + store.TrialConversionSubtype:     {"Trial converted", "试用转付费"},
+	"DID_FAIL_TO_RENEW":                             {"Renewal payment failed", "续订扣款失败"},
 	"DID_CHANGE_RENEWAL_STATUS/AUTO_RENEW_DISABLED": {"Auto-renew turned off", "关闭自动续订"},
 	"DID_CHANGE_RENEWAL_STATUS/AUTO_RENEW_ENABLED":  {"Auto-renew turned on", "开启自动续订"},
 	"DID_CHANGE_RENEWAL_PREF":                       {"Plan changed", "更改订阅方案"},

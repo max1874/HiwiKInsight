@@ -12,6 +12,8 @@ import (
 	"math"
 	"sort"
 	"time"
+
+	"github.com/RedHiwiK/HiwiKInsight/internal/store"
 )
 
 func init() {
@@ -354,9 +356,9 @@ func portfolioApps(ctx context.Context, db *sql.DB, p Params, thisMonth, day, la
 // portfolioFeed returns the latest real transactions (App Store Server Notifications, production) signed at or after since (milliseconds).
 func portfolioFeed(ctx context.Context, db *sql.DB, since int64) (Table, error) {
 	return queryTable(ctx, db, "feed", `
-		SELECT local_datetime(signed_at) AS time_local, bundle_id, notification_type AS type, subtype,
+		SELECT local_datetime(signed_at) AS time_local, bundle_id, notification_type AS type, `+store.SubtypeSQL+` AS subtype,
 			product_id, revenue_sign, ROUND(amount, 2) AS amount, storefront, COALESCE(price_milli, 0) = 0 AS free
-		FROM appstore_events WHERE environment = 'Production' AND notification_type != 'TEST' AND signed_at >= ?
+		FROM appstore_events a WHERE environment = 'Production' AND notification_type != 'TEST' AND signed_at >= ?
 		ORDER BY signed_at DESC LIMIT 30`, since)
 }
 

@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `feishu` config: charges, refunds and Apple's test notification also go to one person through a Feishu or Lark app bot.
 
+### Changed
+
+- The first charge after a free trial reads "Trial converted" instead of "Renewal" in the live feed, transaction emails and reports. Apple sends it as a plain `DID_RENEW`, so a charge counts as a conversion when the same subscription has a stored free trial start and no earlier paid charge.
+- The Portfolio revenue mix labels renewals "Renewals (incl. trial conversions)", because App Store Connect sales reports do not separate the two.
+
 ## [v1.2.0] — 2026-10-21
 
 ### Added

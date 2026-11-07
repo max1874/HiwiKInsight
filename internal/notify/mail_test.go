@@ -170,5 +170,44 @@ func TestRenderChat(t *testing.T) {
 	}
 	if got := renderChat(buildView(mailInput{AppName: "Pawprint", Payload: payload("TEST", "", "com.example.pawprint", "Sandbox")})); got != "" {
 		t.Errorf("test notification should only have a subject, got:\n%s", got)
+
+// Apple sends the first charge after a free trial as DID_RENEW; only that charge is a conversion.
+func TestTrialConversion(t *testing.T) {
+	st, err := store.Open(filepath.Join(t.TempDir(), "a.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	day := int64(24 * time.Hour / time.Millisecond)
+	record := func(uuid, original, typ string, price, at int64) {
+		t.Helper()
+		if _, err := st.Record(store.Event{NotificationUUID: uuid, BundleID: "com.example.ledger", Environment: "Production",
+			NotificationType: typ, RevenueSign: RevenueSign[typ], PriceMilli: price, SignedAt: at, App: "ledger",
+			OriginalTransactionID: original}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	record("trial", "with-trial", "SUBSCRIBED", 0, 0)
+	record("first", "with-trial", "DID_RENEW", 28000, 7*day)
+	record("second", "with-trial", "DID_RENEW", 28000, 372*day)
+	record("paid-start", "no-trial", "SUBSCRIBED", 28000, 0)
+	record("renewal", "no-trial", "DID_RENEW", 28000, 365*day)
+
+	for uuid, want := range map[string]bool{"trial": false, "first": true, "second": false, "paid-start": false, "renewal": false, "missing": false} {
+		got, err := st.IsTrialConversion(uuid)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != want {
+			t.Errorf("IsTrialConversion(%s) = %v", uuid, got)
+		}
+	}
+
+	defer i18n.Set("en")
+	i18n.Set("en")
+	in := scenarios()["renewal-eur"]
+	in.TrialConversion = true
+	if v := buildView(in); v.Label != "Trial converted" || !strings.Contains(v.Subject, "Trial converted") {
+		t.Errorf("label %q, subject %q", v.Label, v.Subject)
 	}
 }
