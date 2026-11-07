@@ -145,8 +145,8 @@ func checkConfig(args []string) error {
 		fmt.Printf("public URL: %s (SDK endpoint; App Store notifications at %s/v1/appstore/notifications)\n",
 			cfg.PublicURL, strings.TrimRight(cfg.PublicURL, "/"))
 	}
-	fmt.Printf("dashboard users: %d, query tokens: %d, mail: %v, App Store Connect: %v\n",
-		len(cfg.Dashboard.Users), len(cfg.Query.Tokens), cfg.Mail.Enabled(), cfg.ASC.Enabled())
+	fmt.Printf("dashboard users: %d, query tokens: %d, mail: %v, Feishu: %v, App Store Connect: %v\n",
+		len(cfg.Dashboard.Users), len(cfg.Query.Tokens), cfg.Mail.Enabled(), cfg.Feishu.Enabled(), cfg.ASC.Enabled())
 	for _, a := range cfg.Apps {
 		catalog := a.Catalog
 		if catalog == "" {

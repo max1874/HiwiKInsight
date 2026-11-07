@@ -27,6 +27,7 @@ import (
 	"github.com/RedHiwiK/HiwiKInsight/internal/catalog"
 	"github.com/RedHiwiK/HiwiKInsight/internal/config"
 	"github.com/RedHiwiK/HiwiKInsight/internal/dashboard"
+	"github.com/RedHiwiK/HiwiKInsight/internal/feishu"
 	"github.com/RedHiwiK/HiwiKInsight/internal/fx"
 	"github.com/RedHiwiK/HiwiKInsight/internal/i18n"
 	"github.com/RedHiwiK/HiwiKInsight/internal/ingest"
@@ -104,6 +105,9 @@ func New(cfg *config.Config) (*Server, error) {
 	}
 
 	notifier := notify.New(cfg, st, s.sender, s.rates)
+	if f := cfg.Feishu; f.Enabled() {
+		notifier.Chat = &feishu.Sender{BaseURL: f.BaseURL, AppID: f.AppID, AppSecret: f.AppSecret, OpenID: f.OpenID}
+	}
 	contexts := map[string]string{}
 	for _, a := range cfg.Apps {
 		for k, v := range a.PaywallContexts {

@@ -64,6 +64,7 @@ prints the effective settings and fails on errors. Validation is strict:
 | `query` | object | | Query API tokens |
 | `ingest` | object | | Event ingestion limits |
 | `mail` | object | | SMTP settings for all email |
+| `feishu` | object | | Feishu or Lark messages for charges and refunds |
 | `reports` | object | | Daily and weekly reports |
 | `alerts` | object | | Alert rules |
 | `app_store_connect` | object | | App Store Connect API credentials |
@@ -121,6 +122,17 @@ Generate tokens with `openssl rand -hex 32`. Use one token per client so you can
 | `password` | string | empty | SMTP password; use `${SMTP_PASSWORD}` |
 | `from` | string | `username` | Sender address |
 | `to` | list | empty | Recipients of transaction emails, reports and alerts |
+
+## `feishu`
+
+Messages are sent only when `app_id`, `app_secret` and `open_id` are all set; setting only some of them is an error.
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `app_id` | string | empty | App with a bot and the `im:message:send_as_bot` permission |
+| `app_secret` | string | empty | Use `${FEISHU_APP_SECRET}` |
+| `open_id` | string | empty | Recipient's `open_id` under this app; another app's `open_id` is rejected |
+| `base_url` | string | `https://open.feishu.cn` | `https://open.larksuite.com` for Lark |
 
 ## `reports`
 

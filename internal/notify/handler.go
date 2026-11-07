@@ -1,9 +1,11 @@
 // Package notify receives App Store Server Notifications V2, records them as
-// transactions and sends a transaction email for each one.
+// transactions and sends a transaction email for each one, plus a chat message for
+// charges and refunds when a chat is configured.
 package notify
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -21,6 +23,7 @@ type Handler struct {
 	Config   *config.Config
 	Verifier *appstore.Verifier
 	Sender   mailer.Sender
+	Chat     mailer.Sender // optional
 	Store    *store.Store
 	FX       *fx.Rates
 	// AttributionWait: the notification of a first purchase can arrive before the app's
@@ -42,7 +45,7 @@ func (h *Handler) ProductName(id string) string {
 }
 
 // ServeHTTP handles a notification. Apple retries non-200 responses after 1, 12, 24,
-// 48 and 72 hours, so only a failed email (worth retrying) returns 5xx.
+// 48 and 72 hours, so only a failed delivery (worth retrying) returns 5xx.
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 256<<10)
 	var req struct {
@@ -109,8 +112,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("render html failed, fallback to text", "error", err)
 	}
-	if err := h.Sender.Send(view.Subject, renderText(view), htmlBody); err != nil {
-		slog.Error("send mail failed, Apple will retry", "error", err, "notificationUUID", p.NotificationUUID)
+	err = h.Sender.Send(view.Subject, renderText(view), htmlBody)
+	if h.Chat != nil && sendsToChat(p.NotificationType) {
+		err = errors.Join(err, h.Chat.Send(view.Subject, renderChat(view), ""))
+	}
+	if err != nil {
+		slog.Error("send notification failed, Apple will retry", "error", err, "notificationUUID", p.NotificationUUID)
 		http.Error(w, "notify failed", http.StatusInternalServerError)
 		return
 	}

@@ -124,6 +124,16 @@ mail:
   to:
     - you@example.com
 
+# Feishu or Lark app bot that messages one person about charges and refunds, in addition
+# to any email. Leave out to disable. The app needs the im:message:send_as_bot permission.
+feishu:
+  app_id: cli_xxxxxxxxxxxxxxxx
+  app_secret: ${FEISHU_APP_SECRET}
+  # The recipient's open_id under this app.
+  open_id: ou_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  # https://open.larksuite.com for Lark.
+  base_url: https://open.feishu.cn
+
 reports:
   # Daily report for yesterday and weekly report for the previous week.
   daily: true

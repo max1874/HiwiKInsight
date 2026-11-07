@@ -274,6 +274,25 @@ func formatPeriod(p store.Period, currency string) string {
 	return s
 }
 
+// sendsToChat limits chat messages to charges, refunds and Apple's test notification,
+// which confirms the setup. Everything else stays in email.
+func sendsToChat(notificationType string) bool {
+	return RevenueSign[notificationType] != 0 || notificationType == "TEST"
+}
+
+// renderChat is the body of a chat message; the subject already names the app, event,
+// amount and product.
+func renderChat(v mailView) string {
+	var lines []string
+	if v.AmountNote != "" {
+		lines = append(lines, v.AmountNote)
+	}
+	if v.StatsToday != "" {
+		lines = append(lines, v.L.Today+": "+v.StatsToday, v.L.Month+": "+v.StatsMonth)
+	}
+	return strings.Join(lines, "\n")
+}
+
 func renderText(v mailView) string {
 	var b strings.Builder
 	b.WriteString(v.AppName + " · " + v.Label)

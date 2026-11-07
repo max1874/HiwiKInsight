@@ -21,6 +21,7 @@ HiwiKInsight is a self-hosted analytics and App Store revenue server: one Go bin
 | `internal/asc` | App Store Connect API client: sales reports, analytics reports, released-build list |
 | `internal/report` | Daily/weekly report builder and scheduler; alert rules and alerter |
 | `internal/mailer` | SMTP sender (465 implicit TLS, otherwise STARTTLS) and a log-only sender |
+| `internal/feishu` | Feishu or Lark bot sender for charge and refund messages |
 | `internal/auth` | Dashboard sign-in: bcrypt users, HMAC session cookie, failure throttling |
 | `internal/catalog` | Loads per-app event catalogs (YAML text, lightly parsed) |
 | `internal/tz` | Reporting time zone and the SQL functions `local_date`, `local_datetime`, `local_today` |

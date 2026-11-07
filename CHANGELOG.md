@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `feishu` config: charges, refunds and Apple's test notification also go to one person through a Feishu or Lark app bot.
+
 ## [v1.2.0] — 2026-10-21
 
 ### Added

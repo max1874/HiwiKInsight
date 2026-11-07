@@ -49,6 +49,7 @@ type Config struct {
 	Query     Query     `yaml:"query"`
 	Ingest    Ingest    `yaml:"ingest"`
 	Mail      Mail      `yaml:"mail"`
+	Feishu    Feishu    `yaml:"feishu"`
 	Reports   Reports   `yaml:"reports"`
 	Alerts    Alerts    `yaml:"alerts"`
 	ASC       ASC       `yaml:"app_store_connect"`
@@ -114,6 +115,19 @@ type Mail struct {
 
 // Enabled reports whether mail can be sent; otherwise mail is only logged.
 func (m Mail) Enabled() bool { return m.SMTPHost != "" && len(m.To) > 0 }
+
+// Feishu holds the app bot that messages one person about charges and refunds.
+type Feishu struct {
+	// BaseURL is https://open.feishu.cn (default) or https://open.larksuite.com for Lark.
+	BaseURL   string `yaml:"base_url"`
+	AppID     string `yaml:"app_id"`
+	AppSecret string `yaml:"app_secret"`
+	// OpenID is the recipient's open_id under this app.
+	OpenID string `yaml:"open_id"`
+}
+
+// Enabled reports whether all credentials are present.
+func (f Feishu) Enabled() bool { return f.AppID != "" && f.AppSecret != "" && f.OpenID != "" }
 
 type Reports struct {
 	Daily  *bool `yaml:"daily"`
@@ -334,6 +348,9 @@ func (c *Config) applyDefaults() {
 	if c.Mail.From == "" {
 		c.Mail.From = c.Mail.Username
 	}
+	if c.Feishu.BaseURL == "" {
+		c.Feishu.BaseURL = "https://open.feishu.cn"
+	}
 	if c.Reports.Daily == nil {
 		c.Reports.Daily = boolPtr(true)
 	}
@@ -393,6 +410,9 @@ func (c *Config) validate() error {
 	}
 	if *c.Reports.Hour < 0 || *c.Reports.Hour > 23 {
 		errs = append(errs, "reports.hour must be 0–23")
+	}
+	if f := c.Feishu; !f.Enabled() && f.AppID+f.AppSecret+f.OpenID != "" {
+		errs = append(errs, "feishu: app_id, app_secret and open_id must be set together")
 	}
 	keys, bundles := map[string]bool{}, map[string]bool{}
 	for i, a := range c.Apps {

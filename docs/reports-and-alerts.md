@@ -24,6 +24,10 @@ Sent as each notification arrives (see [app-store-setup.md](app-store-setup.md))
 
 If sending fails, the notification endpoint returns HTTP 500 so Apple retries later; the transaction itself is already stored and is not counted twice.
 
+## Feishu messages
+
+With [`feishu`](configuration.md#feishu) configured, charges, refunds and Apple's test notification also go to one person through a Feishu or Lark bot, with today's and this month's totals. Free trial starts count, because they arrive as new subscriptions at price zero. Other notifications, reports and alerts stay in email. A failed message also returns HTTP 500, so while Feishu is down a retry can repeat the email.
+
 ## Daily and weekly reports
 
 | Setting | Default | Meaning |

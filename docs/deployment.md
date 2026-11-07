@@ -4,7 +4,7 @@ HiwiKInsight is a single process with a single SQLite database. It needs:
 
 - A public HTTPS URL, because the SDK and Apple's App Store Server Notifications must reach it.
 - A persistent directory for the database (`hiwikinsight.db`, plus its `-wal` and `-shm` files) and the session secret (`session.key`).
-- Outbound HTTPS to `api.appstoreconnect.apple.com` (if App Store Connect sync is configured), `open.er-api.com` (exchange rates) and your SMTP server.
+- Outbound HTTPS to `api.appstoreconnect.apple.com` (if App Store Connect sync is configured), `open.feishu.cn` or `open.larksuite.com` (if `feishu` is configured), `open.er-api.com` (exchange rates) and your SMTP server.
 
 Two supported setups follow: Docker Compose with Caddy, and a binary with systemd behind nginx.
 
