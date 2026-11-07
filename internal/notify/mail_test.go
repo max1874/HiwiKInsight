@@ -170,6 +170,8 @@ func TestRenderChat(t *testing.T) {
 	}
 	if got := renderChat(buildView(mailInput{AppName: "Pawprint", Payload: payload("TEST", "", "com.example.pawprint", "Sandbox")})); got != "" {
 		t.Errorf("test notification should only have a subject, got:\n%s", got)
+	}
+}
 
 // Apple sends the first charge after a free trial as DID_RENEW; only that charge is a conversion.
 func TestTrialConversion(t *testing.T) {
