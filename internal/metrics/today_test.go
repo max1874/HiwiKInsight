@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -86,9 +87,10 @@ func TestToday(t *testing.T) {
 	if got := len(feed.Rows); got != 3 {
 		t.Errorf("feed rows = %d, want 3 (today only)", got)
 	}
+	trial := slices.Index(feed.Columns, "trial")
 	trials := 0
 	for _, r := range feed.Rows {
-		trials += toInt(r[len(r)-1])
+		trials += toInt(r[trial])
 	}
 	if trials != 1 {
 		t.Errorf("feed trial rows = %d, want 1 (the redeemed one-time purchase is not a trial)", trials)
