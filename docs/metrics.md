@@ -14,7 +14,7 @@ HiwiKInsight ships 15 built-in metrics with fixed definitions (`internal/metrics
 - **User**: an anonymous `install_id`. A reinstall is a new user.
 - **Active**: had any event that day (a row in `daily_active`).
 - **Truly new user**: an install whose first-seen day equals its first App Store download day (`installs.acquired_at`, from `AppTransaction`). People who installed before the app shipped the SDK are not new.
-- **Money**: in the base currency. Revenue from App Store notifications is the customer price converted at the day's rate (before Apple's commission); `portfolio` uses App Store Connect proceeds (after commission and taxes). A transaction with price 0 is a free-trial start, not a sale.
+- **Money**: in the base currency. Revenue from App Store notifications is the customer price converted at the day's rate (before Apple's commission); `portfolio` uses App Store Connect proceeds (after commission and taxes). A transaction with price 0 is not a sale; it is a free-trial start only when it starts a subscription (`SUBSCRIBED`).
 - Percentages have one decimal; `null` means no data or not yet observable.
 
 ```bash
@@ -105,7 +105,7 @@ Extra parameters: none.
 
 ## funnel
 
-> Paywall funnel split by entry context: distinct users and conversion rates for paywall.shown -> paywall.cta_tap -> purchase.started -> purchase.success; verified_sales = sales confirmed by the App Store server (price > 0), verified_trials = free-trial starts (price 0, not counted as sales)
+> Paywall funnel split by entry context: distinct users and conversion rates for paywall.shown -> paywall.cta_tap -> purchase.started -> purchase.success; verified_sales = sales confirmed by the App Store server (price > 0), verified_trials = free-trial starts (subscriptions started at price 0, not counted as sales)
 
 Extra parameters: none. Events without a `context` param count as `unknown`.
 
@@ -115,7 +115,7 @@ Extra parameters: none. Events without a `context` param count as `unknown`.
 
 ## revenue
 
-> Actual revenue from App Store Server Notifications (in the base currency) split by entry context, product and storefront, plus the distribution of days from install to purchase; context comes from appAccountToken attribution, missing attribution is recorded as unattributed; sales only counts transactions with price > 0, free-trial starts with price 0 are listed separately as trials; daily is aggregated per day (reporting time zone) and only contains days with transactions
+> Actual revenue from App Store Server Notifications (in the base currency) split by entry context, product and storefront, plus the distribution of days from install to purchase; context comes from appAccountToken attribution, missing attribution is recorded as unattributed; sales only counts transactions with price > 0, free-trial starts (subscriptions started at price 0) are listed separately as trials; daily is aggregated per day (reporting time zone) and only contains days with transactions
 
 Extra parameters: none. Uses the app's `bundle_id` and Apple's environment matching `env`.
 

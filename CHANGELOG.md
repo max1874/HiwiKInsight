@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `feishu` config: charges, refunds and Apple's test notification also go to one person through a Feishu or Lark app bot.
 
+## [v1.3.0] — 2026-11-09
+
 ### Changed
 
 - The first charge after a free trial reads "Trial converted" instead of "Renewal" in the live feed, transaction emails and reports. Apple sends it as a plain `DID_RENEW`, so a charge counts as a conversion when the same subscription has a stored free trial start and no earlier paid charge.
@@ -71,7 +73,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Deployment assets: multi-arch container image on GHCR, Docker Compose with Caddy, systemd unit, nginx example, release archives for linux and darwin (amd64, arm64).
 - Documentation in `docs/`, `AGENTS.md` for AI coding agents, English and Chinese READMEs.
 
-[Unreleased]: https://github.com/RedHiwiK/HiwiKInsight/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/RedHiwiK/HiwiKInsight/compare/v1.3.0...HEAD
+[v1.3.0]: https://github.com/RedHiwiK/HiwiKInsight/compare/v1.2.0...v1.3.0
 [v1.2.0]: https://github.com/RedHiwiK/HiwiKInsight/compare/v1.1.2...v1.2.0
 [v1.1.2]: https://github.com/RedHiwiK/HiwiKInsight/compare/v1.1.1...v1.1.2
 [v1.1.1]: https://github.com/RedHiwiK/HiwiKInsight/compare/v1.1.0...v1.1.1

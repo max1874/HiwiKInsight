@@ -206,9 +206,9 @@ func (b *builder) daily(day string) (*View, error) {
 		switch {
 		case t.sign < 0:
 			refunds++
-		case t.priceMilli == 0:
+		case t.trial:
 			trials++
-		default:
+		case t.priceMilli > 0:
 			sales++
 		}
 	}
@@ -432,14 +432,17 @@ type transaction struct {
 	time, app, label string
 	sign             int
 	priceMilli       int64
+	trial            bool
 	value            sql.NullFloat64 // base currency
 	currency         string
 }
 
 func (t transaction) amount() Cell {
 	switch {
-	case t.sign > 0 && t.priceMilli == 0:
+	case t.trial:
 		return Cell{Value: i18n.T("Trial", "试用")}
+	case t.sign > 0 && t.priceMilli == 0:
+		return Cell{Value: i18n.T("Free", "免费")}
 	case !t.value.Valid:
 		return Cell{Value: fmt.Sprintf("%.2f %s", float64(t.priceMilli)/1000, t.currency)}
 	case t.sign < 0:
@@ -476,6 +479,7 @@ func (b *builder) transactions(day string) ([]transaction, error) {
 		if err := rs.Scan(&bundle, &typ, &sub, &product, &t.sign, &t.priceMilli, &t.value, &t.currency, &signed, &context); err != nil {
 			return nil, err
 		}
+		t.trial = store.IsFreeTrial(typ, t.priceMilli)
 		t.time = time.UnixMilli(signed).In(tz.Location()).Format("15:04")
 		t.app = orDefault(names[bundle], bundle)
 		label := b.cfg.TypeLabel(typ, sub) + " · " + b.cfg.ProductName(product)

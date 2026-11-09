@@ -24,10 +24,10 @@ func TestRecordAndStats(t *testing.T) {
 		return e
 	}
 
-	// Free-trial start: revenue_sign = 1 but price 0, not counted as a sale
-	trial := func(id string, at time.Time) Event {
+	// Price-0 income is never a sale; it is a free-trial start only when it starts a subscription
+	free := func(id, typ string, at time.Time) Event {
 		e := ev(id, 1, amt(0), at)
-		e.PriceMilli = 0
+		e.NotificationType, e.PriceMilli = typ, 0
 		return e
 	}
 	for _, e := range []Event{
@@ -36,7 +36,8 @@ func TestRecordAndStats(t *testing.T) {
 		ev("today-refund", -1, amt(18), now.Add(-30*time.Minute)),
 		ev("today-foreign", 1, nil, now.Add(-10*time.Minute)),
 		ev("today-info", 0, nil, now.Add(-5*time.Minute)),
-		trial("today-trial", now.Add(-3*time.Minute)),
+		free("today-trial", "SUBSCRIBED", now.Add(-3*time.Minute)),
+		free("today-redeemed", "ONE_TIME_CHARGE", now.Add(-2*time.Minute)),
 		ev("month-1", 1, amt(12), now.AddDate(0, 0, -5)),
 		ev("last-month", 1, amt(99), now.AddDate(0, -1, 0)),
 	} {

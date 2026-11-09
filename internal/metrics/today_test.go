@@ -44,18 +44,19 @@ func TestToday(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	rec := func(id string, sign int, price int64, amount float64, day string, hour int) {
+	rec := func(id, typ string, sign int, price int64, amount float64, day string, hour int) {
 		t.Helper()
 		if _, err := s.Record(store.Event{NotificationUUID: id, BundleID: "com.example.pawprint", Environment: "Production",
-			NotificationType: "ONE_TIME_CHARGE", ProductID: "pro", Currency: "CNY", PriceMilli: price,
+			NotificationType: typ, ProductID: "pro", Currency: "CNY", PriceMilli: price,
 			RevenueSign: sign, Amount: &amount, SignedAt: ms(day, hour)}); err != nil {
 			t.Fatal(err)
 		}
 	}
-	rec("n1", 1, 18000, 18, "2026-09-23", 10)
-	rec("n2", 1, 0, 0, "2026-09-23", 11)   // free trial
-	rec("n3", 1, 6000, 6, "2026-09-22", 9) // yesterday before 12:30
-	rec("n4", -1, 6000, 6, "2026-09-22", 20)
+	rec("n1", "ONE_TIME_CHARGE", 1, 18000, 18, "2026-09-23", 10)
+	rec("n2", "SUBSCRIBED", 1, 0, 0, "2026-09-23", 11)        // free trial
+	rec("n5", "ONE_TIME_CHARGE", 1, 0, 0, "2026-09-23", 11)   // redeemed free: neither a trial nor a sale
+	rec("n3", "ONE_TIME_CHARGE", 1, 6000, 6, "2026-09-22", 9) // yesterday before 12:30
+	rec("n4", "REFUND", -1, 6000, 6, "2026-09-22", 20)
 
 	res, err := Run(context.Background(), s.ReadOnly(), "today", Params{Apps: map[string]string{"pawprint": "com.example.pawprint"}})
 	if err != nil {
@@ -81,7 +82,15 @@ func TestToday(t *testing.T) {
 	if fmt.Sprint(h["8"][2], h["15"][2], h["15"][3], h["10"][3]) != "1 <nil> 1 1" {
 		t.Errorf("hourly = %v %v %v", h["8"], h["15"], h["10"])
 	}
-	if got := len(table(t, res, "feed").Rows); got != 2 {
-		t.Errorf("feed rows = %d, want 2 (today only)", got)
+	feed := table(t, res, "feed")
+	if got := len(feed.Rows); got != 3 {
+		t.Errorf("feed rows = %d, want 3 (today only)", got)
+	}
+	trials := 0
+	for _, r := range feed.Rows {
+		trials += toInt(r[len(r)-1])
+	}
+	if trials != 1 {
+		t.Errorf("feed trial rows = %d, want 1 (the redeemed one-time purchase is not a trial)", trials)
 	}
 }

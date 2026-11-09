@@ -81,9 +81,9 @@ func buildView(in mailInput) mailView {
 		},
 	}
 	sign := RevenueSign[p.NotificationType]
-	// A zero-price start is a free trial, not income: no income color, no "+$0", not counted as a sale
-	trial := sign == 1 && tx != nil && tx.Price == 0
-	if trial {
+	// A zero-price start is not income: no income color, no "+$0", not counted as a sale
+	free := sign == 1 && tx != nil && tx.Price == 0
+	if free {
 		sign = 0
 	}
 	switch sign {
@@ -103,8 +103,11 @@ func buildView(in mailInput) mailView {
 		product := in.ProductName(tx.ProductID)
 		prefix := map[int]string{1: "+", -1: "-"}[sign]
 		v.Amount = prefix + formatMilli(tx.Price, tx.Currency)
-		if trial {
-			v.Amount = t("Free trial", "免费试用")
+		if free {
+			v.Amount = t("Free", "免费")
+			if store.IsFreeTrial(p.NotificationType, tx.Price) {
+				v.Amount = t("Free trial", "免费试用")
+			}
 		}
 
 		var notes []string

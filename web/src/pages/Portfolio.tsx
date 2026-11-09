@@ -396,10 +396,13 @@ function Feed({ feed, colorOf, nameOf, productOf }: {
   return (
     <ul className="scroll-thin -mr-2 max-h-[300px] overflow-y-auto pr-2">
       {feed.map((f, i) => {
-        // A zero-price start is a free trial: own badge, no amount
-        const trial = num(f.revenue_sign) === 1 && (f.free === true || num(f.free) === 1)
-        const b = trial ? { label: t('试用开通', 'Trial started'), tone: 'neutral' as Tone } : eventBadge(String(f.type), String(f.subtype ?? ''))
-        const sign = trial ? 0 : num(f.revenue_sign)
+        // A zero-price start is not income: no amount; only a subscription start is a free trial
+        const free = num(f.revenue_sign) === 1 && (f.free === true || num(f.free) === 1)
+        const trial = f.trial === true || num(f.trial) === 1
+        const b = trial ? { label: t('试用开通', 'Trial started'), tone: 'neutral' as Tone }
+          : free ? { label: t('免费获得', 'Free'), tone: 'neutral' as Tone }
+          : eventBadge(String(f.type), String(f.subtype ?? ''))
+        const sign = free ? 0 : num(f.revenue_sign)
         return (
           <li key={i} className="flex items-center gap-2.5 border-b border-border py-2.5 text-small last:border-b-0">
             <span className="num w-[76px] shrink-0 text-caption font-normal text-text-3">{String(f.time_local).slice(5, 16)}</span>

@@ -88,6 +88,25 @@ func scenarios() map[string]mailInput {
 			Amount: f(10.0),
 			Stats:  &store.Stats{Today: store.Period{Sales: 2, Refunds: 1, Net: 9.98}, Month: store.Period{Sales: 41, Refunds: 2, Net: 389.6}},
 		}),
+		// Only a subscription starts a free trial; a lifetime product redeemed at price 0 is just free
+		"trial-start": base(mailInput{
+			AppName: "Ledger",
+			Payload: payload("SUBSCRIBED", "INITIAL_BUY", "com.example.ledger", "Production"),
+			Tx: &appstore.TransactionInfo{TransactionID: "2000000899990003", OriginalTransactionID: "2000000899990003",
+				ProductID: "com.example.ledger.pro.yearly", Type: "Auto-Renewable Subscription", Storefront: "USA",
+				Currency: "USD", Price: 0, PurchaseDate: now, ExpiresDate: now + 7*24*3600*1000, TransactionReason: "PURCHASE", OfferType: 1},
+			Amount: f(0),
+			Stats:  &store.Stats{Today: store.Period{Trials: 1}},
+		}),
+		"free-lifetime": base(mailInput{
+			AppName: "Pawprint",
+			Payload: payload("ONE_TIME_CHARGE", "", "com.example.pawprint", "Production"),
+			Tx: &appstore.TransactionInfo{TransactionID: "2000000812349999", OriginalTransactionID: "2000000812349999",
+				ProductID: "com.example.pawprint.pro.lifetime", Type: "Non-Consumable", Storefront: "CHN",
+				Currency: "CNY", Price: 0, PurchaseDate: now, TransactionReason: "PURCHASE", OfferType: 3},
+			Amount: f(0),
+			Stats:  &store.Stats{},
+		}),
 		"test": base(mailInput{
 			AppName: "Pawprint",
 			Payload: payload("TEST", "", "com.example.pawprint", "Sandbox"),
@@ -127,6 +146,12 @@ func TestRenderScenarios(t *testing.T) {
 	}
 	if v := buildView(s["refund"]); v.Amount != "-HK$78.00" || !strings.Contains(v.AmountNote, "≈ $10.00") {
 		t.Errorf("unexpected refund amount: %q / %q", v.Amount, v.AmountNote)
+	}
+	if v := buildView(s["trial-start"]); v.Amount != "Free trial" {
+		t.Errorf("trial start amount = %q", v.Amount)
+	}
+	if v := buildView(s["free-lifetime"]); v.Amount != "Free" {
+		t.Errorf("free lifetime amount = %q", v.Amount)
 	}
 	text := renderText(buildView(s["purchase"]))
 	for _, want := range []string{"Entry point: Record limit", "Install age: day 12", "Paywall views: paywall view #3", "Device: iPhone 16 Pro / iOS 26.1"} {

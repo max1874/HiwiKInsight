@@ -23,7 +23,7 @@ What the server does with each notification:
 
 1. Verifies the JWS signature and certificate chain against Apple's root CA (also for the signed transaction and renewal info). Invalid signatures get HTTP 400.
 2. Looks up the app by `bundleId`; unknown bundle IDs get HTTP 400.
-3. Stores it in `appstore_events`, idempotently by `notificationUUID` (Apple's retries are not counted twice). `revenue_sign` is `+1` for `ONE_TIME_CHARGE`, `SUBSCRIBED`, `DID_RENEW` and `REFUND_REVERSED`, `-1` for `REFUND`, and `0` for everything else. A `+1` with price 0 is a free-trial start, not a sale.
+3. Stores it in `appstore_events`, idempotently by `notificationUUID` (Apple's retries are not counted twice). `revenue_sign` is `+1` for `ONE_TIME_CHARGE`, `SUBSCRIBED`, `DID_RENEW` and `REFUND_REVERSED`, `-1` for `REFUND`, and `0` for everything else. A `+1` with price 0 is not a sale; it is a free-trial start only for `SUBSCRIBED` (a price-0 `ONE_TIME_CHARGE`, such as a one-time product redeemed with an offer code, is neither).
 4. Converts the price to the base currency (`amount`) using the day's exchange rate. If no rate is available the amount stays empty and is reported as "unconverted".
 5. Links it to the in-app purchase attempt through `appAccountToken` (see [sdk-integration.md](sdk-integration.md#how-attribution-works-end-to-end)).
 6. Sends a transaction email (or logs it when mail is not configured): type, amount, conversion and estimated proceeds (`commission_rate`), source, renewal state, and today's and this month's totals.

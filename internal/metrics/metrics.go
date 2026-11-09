@@ -11,6 +11,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/RedHiwiK/HiwiKInsight/internal/store"
 	"github.com/RedHiwiK/HiwiKInsight/internal/tz"
 )
 
@@ -54,8 +55,8 @@ var defs = []Def{
 	{"retention", "Retention of truly new users grouped by first seen day (by the Monday of the first seen week when cohort=week): Dn = share active on exactly day n after the first seen day; within_7d / within_30d = share that came back at least once within n days; cells not yet observable are empty", retention},
 	{"returning", "Daily active users split into new / returning (not first seen that day) / resurrected (inactive for >= 7 consecutive days before); plus, as of `to`, churned (last active >= 14 days ago) and at-risk (7-13 days) user counts", returning},
 	{"module_usage", "screen.viewed by module / screen: coverage = users who used the module / active users in the range; views per user; average time on screen in seconds (from screen.left). The features table counts feature-usage events carrying a module parameter (e.g. AI analysis, OCR) by module / event / feature: users, uses and success rate", moduleUsage},
-	{"funnel", "Paywall funnel split by entry context: distinct users and conversion rates for paywall.shown -> paywall.cta_tap -> purchase.started -> purchase.success; verified_sales = sales confirmed by the App Store server (price > 0), verified_trials = free-trial starts (price 0, not counted as sales)", funnel},
-	{"revenue", "Actual revenue from App Store Server Notifications (in the base currency) split by entry context, product and storefront, plus the distribution of days from install to purchase; context comes from appAccountToken attribution, missing attribution is recorded as unattributed; sales only counts transactions with price > 0, free-trial starts with price 0 are listed separately as trials; daily is aggregated per day (reporting time zone) and only contains days with transactions", revenue},
+	{"funnel", "Paywall funnel split by entry context: distinct users and conversion rates for paywall.shown -> paywall.cta_tap -> purchase.started -> purchase.success; verified_sales = sales confirmed by the App Store server (price > 0), verified_trials = free-trial starts (subscriptions started at price 0, not counted as sales)", funnel},
+	{"revenue", "Actual revenue from App Store Server Notifications (in the base currency) split by entry context, product and storefront, plus the distribution of days from install to purchase; context comes from appAccountToken attribution, missing attribution is recorded as unattributed; sales only counts transactions with price > 0, free-trial starts (subscriptions started at price 0) are listed separately as trials; daily is aggregated per day (reporting time zone) and only contains days with transactions", revenue},
 	{"distribution", "Distribution of active users in the range by device model, iOS version, app version, region, App Store storefront and language (latest attributes of each user)", distribution},
 }
 
@@ -477,7 +478,7 @@ func funnel(ctx context.Context, db *sql.DB, p Params) ([]Table, error) {
 				AND name IN ('paywall.shown', 'paywall.cta_tap', 'purchase.started', 'purchase.success')
 			GROUP BY 1, 2
 		), sales AS (
-			SELECT pa.context, SUM(a.price_milli > 0) AS n, SUM(COALESCE(a.price_milli, 0) = 0) AS trials
+			SELECT pa.context, SUM(a.price_milli > 0) AS n, SUM(`+store.FreeTrialSQL+`) AS trials
 			FROM appstore_events a
 			JOIN v_attribution v ON v.notification_uuid = a.notification_uuid
 			JOIN purchase_attempts pa ON pa.id = v.attempt_id
@@ -529,8 +530,8 @@ func revenue(ctx context.Context, db *sql.DB, p Params) ([]Table, error) {
 				AND local_date(a.signed_at) BETWEEN ? AND ?
 		)`
 	args := []any{p.Bundle, appleEnv[p.Env], p.From, p.To}
-	// Sales only count transactions with price > 0; price-0 starts (free trials) are listed as trials, not sales.
-	agg := `SUM(revenue_sign = 1 AND price_milli > 0) AS sales, SUM(revenue_sign = 1 AND COALESCE(price_milli, 0) = 0) AS trials,
+	// Sales only count transactions with price > 0; free-trial starts are listed as trials, not sales.
+	agg := `SUM(revenue_sign = 1 AND price_milli > 0) AS sales, SUM(` + store.FreeTrialSQL + `) AS trials,
 		SUM(revenue_sign = -1) AS refunds,
 		ROUND(COALESCE(SUM(revenue_sign * amount), 0), 2) AS net, SUM(amount IS NULL AND COALESCE(price_milli, 0) != 0) AS unconverted`
 	var tables []Table

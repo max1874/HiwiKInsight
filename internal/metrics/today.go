@@ -9,6 +9,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/RedHiwiK/HiwiKInsight/internal/store"
 	"github.com/RedHiwiK/HiwiKInsight/internal/tz"
 )
 
@@ -78,7 +79,7 @@ func today(ctx context.Context, db *sql.DB, p Params) ([]Table, error) {
 		rs, err := db.QueryContext(ctx, `
 			SELECT bundle_id, COALESCE(SUM(revenue_sign * amount), 0),
 				COALESCE(SUM(revenue_sign > 0 AND price_milli > 0), 0),
-				COALESCE(SUM(revenue_sign > 0 AND price_milli = 0), 0),
+				COALESCE(SUM(`+store.FreeTrialSQL+`), 0),
 				COALESCE(SUM(revenue_sign < 0), 0)
 			FROM appstore_events WHERE environment = 'Production' AND revenue_sign != 0 AND signed_at >= ? AND signed_at < ?
 			GROUP BY bundle_id`, w[0], w[1])
