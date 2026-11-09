@@ -38,6 +38,11 @@ func TestRecordAndStats(t *testing.T) {
 		ev("today-info", 0, nil, now.Add(-5*time.Minute)),
 		free("today-trial", "SUBSCRIBED", now.Add(-3*time.Minute)),
 		free("today-redeemed", "ONE_TIME_CHARGE", now.Add(-2*time.Minute)),
+		func() Event {
+			e := free("today-code-sub", "SUBSCRIBED", now.Add(-time.Minute))
+			e.OfferType = OfferCode
+			return e
+		}(),
 		ev("month-1", 1, amt(12), now.AddDate(0, 0, -5)),
 		ev("last-month", 1, amt(99), now.AddDate(0, -1, 0)),
 	} {

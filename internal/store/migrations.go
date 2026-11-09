@@ -486,6 +486,11 @@ SELECT
 	) AS is_pro
 FROM installs i LEFT JOIN device_models m ON m.identifier = i.device;
 `,
+	// v12: keep the offer a transaction used, so a price-0 offer-code redemption is not taken for a free trial.
+	`
+ALTER TABLE appstore_events ADD COLUMN offer_type INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE appstore_events ADD COLUMN offer_identifier TEXT NOT NULL DEFAULT '';
+`,
 }
 
 func migrate(db *sql.DB) error {

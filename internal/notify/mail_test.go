@@ -103,7 +103,7 @@ func scenarios() map[string]mailInput {
 			Payload: payload("ONE_TIME_CHARGE", "", "com.example.pawprint", "Production"),
 			Tx: &appstore.TransactionInfo{TransactionID: "2000000812349999", OriginalTransactionID: "2000000812349999",
 				ProductID: "com.example.pawprint.pro.lifetime", Type: "Non-Consumable", Storefront: "CHN",
-				Currency: "CNY", Price: 0, PurchaseDate: now, TransactionReason: "PURCHASE", OfferType: 3},
+				Currency: "CNY", Price: 0, PurchaseDate: now, TransactionReason: "PURCHASE", OfferType: 3, OfferIdentifier: "Lifetime giveaway"},
 			Amount: f(0),
 			Stats:  &store.Stats{},
 		}),
@@ -150,7 +150,13 @@ func TestRenderScenarios(t *testing.T) {
 	if v := buildView(s["trial-start"]); v.Amount != "Free trial" {
 		t.Errorf("trial start amount = %q", v.Amount)
 	}
-	if v := buildView(s["free-lifetime"]); v.Amount != "Free" {
+	if v := buildView(s["free-lifetime"]); v.Amount != "Code redeemed" {
+		t.Errorf("offer-code lifetime amount = %q", v.Amount)
+	}
+	free := s["free-lifetime"]
+	tx := *free.Tx
+	tx.OfferType, free.Tx = 0, &tx
+	if v := buildView(free); v.Amount != "Free" {
 		t.Errorf("free lifetime amount = %q", v.Amount)
 	}
 	text := renderText(buildView(s["purchase"]))

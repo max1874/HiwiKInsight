@@ -432,6 +432,7 @@ type transaction struct {
 	time, app, label string
 	sign             int
 	priceMilli       int64
+	offerType        int
 	trial            bool
 	value            sql.NullFloat64 // base currency
 	currency         string
@@ -441,6 +442,8 @@ func (t transaction) amount() Cell {
 	switch {
 	case t.trial:
 		return Cell{Value: i18n.T("Trial", "试用")}
+	case t.sign > 0 && t.priceMilli == 0 && t.offerType == store.OfferCode:
+		return Cell{Value: i18n.T("Code redeemed", "兑换码兑换")}
 	case t.sign > 0 && t.priceMilli == 0:
 		return Cell{Value: i18n.T("Free", "免费")}
 	case !t.value.Valid:
@@ -459,7 +462,7 @@ func (b *builder) transactions(day string) ([]transaction, error) {
 		names[a.Bundle] = a.Name
 	}
 	rs, err := b.db.QueryContext(b.ctx, `
-		SELECT a.bundle_id, a.notification_type, `+store.SubtypeSQL+`, a.product_id, a.revenue_sign, a.price_milli, a.amount, a.currency,
+		SELECT a.bundle_id, a.notification_type, `+store.SubtypeSQL+`, a.product_id, a.revenue_sign, a.price_milli, a.offer_type, a.amount, a.currency,
 			a.signed_at, COALESCE(pa.context, '')
 		FROM appstore_events a
 		LEFT JOIN v_attribution v ON v.notification_uuid = a.notification_uuid
@@ -476,10 +479,10 @@ func (b *builder) transactions(day string) ([]transaction, error) {
 		var bundle, typ, sub, product, context string
 		var t transaction
 		var signed int64
-		if err := rs.Scan(&bundle, &typ, &sub, &product, &t.sign, &t.priceMilli, &t.value, &t.currency, &signed, &context); err != nil {
+		if err := rs.Scan(&bundle, &typ, &sub, &product, &t.sign, &t.priceMilli, &t.offerType, &t.value, &t.currency, &signed, &context); err != nil {
 			return nil, err
 		}
-		t.trial = store.IsFreeTrial(typ, t.priceMilli)
+		t.trial = store.IsFreeTrial(typ, t.priceMilli, t.offerType)
 		t.time = time.UnixMilli(signed).In(tz.Location()).Format("15:04")
 		t.app = orDefault(names[bundle], bundle)
 		label := b.cfg.TypeLabel(typ, sub) + " · " + b.cfg.ProductName(product)

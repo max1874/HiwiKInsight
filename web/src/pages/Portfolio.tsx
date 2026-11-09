@@ -396,20 +396,24 @@ function Feed({ feed, colorOf, nameOf, productOf }: {
   return (
     <ul className="scroll-thin -mr-2 max-h-[300px] overflow-y-auto pr-2">
       {feed.map((f, i) => {
-        // A zero-price start is not income: no amount; only a subscription start is a free trial
+        // A zero-price start is not income: no amount. It is a free trial (a subscription started without
+        // an offer code), an offer-code redemption (offerType 3, shown with the code's campaign name) or just free.
         const free = num(f.revenue_sign) === 1 && (f.free === true || num(f.free) === 1)
         const trial = f.trial === true || num(f.trial) === 1
+        const code = free && num(f.offer_type) === 3
         const b = trial ? { label: t('试用开通', 'Trial started'), tone: 'neutral' as Tone }
+          : code ? { label: t('兑换码兑换', 'Code redeemed'), tone: 'neutral' as Tone }
           : free ? { label: t('免费获得', 'Free'), tone: 'neutral' as Tone }
           : eventBadge(String(f.type), String(f.subtype ?? ''))
         const sign = free ? 0 : num(f.revenue_sign)
+        const product = productOf(String(f.bundle_id), String(f.product_id ?? '')) + (code && f.offer_identifier ? ` · ${f.offer_identifier}` : '')
         return (
           <li key={i} className="flex items-center gap-2.5 border-b border-border py-2.5 text-small last:border-b-0">
             <span className="num w-[76px] shrink-0 text-caption font-normal text-text-3">{String(f.time_local).slice(5, 16)}</span>
             <Dot color={colorOf(String(f.bundle_id))} />
             <span className="w-16 shrink-0 truncate text-text-2">{nameOf(String(f.bundle_id))}</span>
             <Badge tone={b.tone}>{b.label}</Badge>
-            <span className="min-w-0 flex-1 truncate text-text-3" title={String(f.product_id ?? '')}>{productOf(String(f.bundle_id), String(f.product_id ?? ''))}</span>
+            <span className="min-w-0 flex-1 truncate text-text-3" title={String(f.product_id ?? '')}>{product}</span>
             {sign !== 0 && (
               <span className={`num shrink-0 font-medium ${sign < 0 ? 'text-danger' : 'text-text'}`}>
                 {sign < 0 ? '−' : ''}{fmtMoney(f.amount)}

@@ -68,7 +68,7 @@ cmd/insight                 CLI and MCP server; talks to /v1/query/* over HTTP o
 | `installs` | One per app and install | Forever |
 | `daily_active` | App, env, day, install: `sessions`, `duration_s`, `events` | Forever |
 | `purchase_attempts` | One per `purchase.started` (`id`, `token`): app, env, install, context, product, time, version, device, OS | Forever |
-| `appstore_events` | One per App Store notification: type, subtype, product, transaction, storefront, currency, `price_milli`, `revenue_sign`, `amount`, `signed_at`, `app_account_token`, `app`, `original_transaction_id`, `transaction_reason`, `purchase_at`, `original_purchase_at` | Forever |
+| `appstore_events` | One per App Store notification: type, subtype, product, transaction, storefront, currency, `price_milli`, `revenue_sign`, `amount`, `signed_at`, `app_account_token`, `app`, `original_transaction_id`, `transaction_reason`, `purchase_at`, `original_purchase_at`, `offer_type`, `offer_identifier` | Forever |
 | `asc_apps` | Apps in the App Store Connect account | Forever |
 | `asc_reports` | Fetch log of sales reports (`ok`, `empty`, ...) | Forever |
 | `asc_sales` | Summary Sales Report rows: period, month, bundle, SKU, category, units, `proceeds`, country, subscription | Forever |

@@ -148,6 +148,7 @@ func (h *Handler) record(in *mailInput) {
 		ev.AppAccountToken = tx.AppAccountToken
 		ev.OriginalTransactionID, ev.TransactionReason = tx.OriginalTransactionID, tx.TransactionReason
 		ev.PurchaseAt, ev.OriginalPurchaseAt = tx.PurchaseDate, tx.OriginalPurchaseDate
+		ev.OfferType, ev.OfferIdentifier = tx.OfferType, tx.OfferIdentifier
 		if amount, ok := h.FX.ToBase(tx.Price, tx.Currency); ok {
 			in.Amount, ev.Amount = &amount, &amount
 		}

@@ -9,6 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - `feishu` config: charges, refunds and Apple's test notification also go to one person through a Feishu or Lark app bot.
+- `appstore_events.offer_type` and `offer_identifier` (migration v12): the offer each transaction used, from Apple's `offerType` and `offerIdentifier`. Rows stored earlier have `0` and `''`.
+
+### Fixed
+
+- Only a subscription that starts at price 0 without an offer code counts as a free trial. A price-0 one-time purchase used to show as "Trial started" in the live feed, the Today view, reports and transaction emails; it is now counted as neither a trial nor a sale, and labeled "Code redeemed" (with the code's campaign name in the live feed) when an offer code was used, otherwise "Free".
 
 ## [v1.3.0] — 2026-11-09
 

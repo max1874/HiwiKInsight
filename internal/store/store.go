@@ -98,6 +98,8 @@ type Event struct {
 	TransactionReason     string // PURCHASE (user-initiated) / RENEWAL
 	PurchaseAt            int64  // transaction purchaseDate (milliseconds); 0 when the notification has no transaction
 	OriginalPurchaseAt    int64
+	OfferType             int    // Apple's offerType: 1 introductory, 2 promotional, 3 offer code, 4 win-back; 0 none
+	OfferIdentifier       string // the offer's reference name (for an offer code, the campaign's name)
 }
 
 // Record writes idempotently by notificationUUID; returns inserted=false when Apple retries the same notification.
@@ -106,12 +108,13 @@ func (s *Store) Record(e Event) (inserted bool, err error) {
 		INSERT OR IGNORE INTO appstore_events
 		(notification_uuid, bundle_id, environment, notification_type, subtype, product_id, transaction_id,
 		 storefront, currency, price_milli, revenue_sign, amount, signed_at, received_at, app_account_token,
-		 app, original_transaction_id, transaction_reason, purchase_at, original_purchase_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		 app, original_transaction_id, transaction_reason, purchase_at, original_purchase_at, offer_type, offer_identifier)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		e.NotificationUUID, e.BundleID, e.Environment, e.NotificationType, e.Subtype, e.ProductID, e.TransactionID,
 		e.Storefront, e.Currency, e.PriceMilli, e.RevenueSign, e.Amount, e.SignedAt, time.Now().UnixMilli(),
 		strings.ToLower(e.AppAccountToken),
-		e.App, e.OriginalTransactionID, e.TransactionReason, nullMillis(e.PurchaseAt), nullMillis(e.OriginalPurchaseAt))
+		e.App, e.OriginalTransactionID, e.TransactionReason, nullMillis(e.PurchaseAt), nullMillis(e.OriginalPurchaseAt),
+		e.OfferType, e.OfferIdentifier)
 	if err != nil {
 		return false, err
 	}
@@ -119,13 +122,17 @@ func (s *Store) Record(e Event) (inserted bool, err error) {
 	return n > 0, nil
 }
 
-// FreeTrialSQL matches a free-trial start: a subscription that began at price 0. Only subscriptions have
-// trials; any other price-0 income row (an offer code redeemed for a non-consumable, a free renewal period)
-// is free but neither a trial nor a sale. IsFreeTrial is the same rule in Go.
-const FreeTrialSQL = `(revenue_sign = 1 AND notification_type = 'SUBSCRIBED' AND COALESCE(price_milli, 0) = 0)`
+// OfferCode is Apple's offerType for an offer code.
+const OfferCode = 3
 
-func IsFreeTrial(notificationType string, priceMilli int64) bool {
-	return notificationType == "SUBSCRIBED" && priceMilli == 0
+// FreeTrialSQL matches a free-trial start: a subscription that began at price 0 without an offer code.
+// Any other price-0 income row (an offer code redeemed for a product or a free period, a free renewal)
+// is free but neither a trial nor a sale. IsFreeTrial is the same rule in Go.
+const FreeTrialSQL = `(revenue_sign = 1 AND notification_type = 'SUBSCRIBED' AND COALESCE(price_milli, 0) = 0
+	AND offer_type != 3)`
+
+func IsFreeTrial(notificationType string, priceMilli int64, offerType int) bool {
+	return notificationType == "SUBSCRIBED" && priceMilli == 0 && offerType != OfferCode
 }
 
 // TrialConversionSubtype marks the first charge after a free trial, which Apple reports

@@ -103,11 +103,14 @@ func buildView(in mailInput) mailView {
 		product := in.ProductName(tx.ProductID)
 		prefix := map[int]string{1: "+", -1: "-"}[sign]
 		v.Amount = prefix + formatMilli(tx.Price, tx.Currency)
-		if free {
+		switch {
+		case !free:
+		case tx.OfferType == store.OfferCode:
+			v.Amount = t("Code redeemed", "兑换码兑换")
+		case store.IsFreeTrial(p.NotificationType, tx.Price, tx.OfferType):
+			v.Amount = t("Free trial", "免费试用")
+		default:
 			v.Amount = t("Free", "免费")
-			if store.IsFreeTrial(p.NotificationType, tx.Price) {
-				v.Amount = t("Free trial", "免费试用")
-			}
 		}
 
 		var notes []string
