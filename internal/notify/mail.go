@@ -287,8 +287,11 @@ func formatPeriod(p store.Period, currency string) string {
 }
 
 // sendsToChat limits chat messages to charges, refunds and Apple's test notification,
-// which confirms the setup. Everything else stays in email.
-func sendsToChat(notificationType string) bool {
+// which confirms the setup. Free-trial starts and everything else stay in email.
+func sendsToChat(notificationType string, tx *appstore.TransactionInfo) bool {
+	if tx != nil && store.IsFreeTrial(notificationType, tx.Price, tx.OfferType) {
+		return false
+	}
 	return RevenueSign[notificationType] != 0 || notificationType == "TEST"
 }
 

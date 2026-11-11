@@ -180,9 +180,15 @@ func TestChatCoversChargesRefundsAndTest(t *testing.T) {
 		"ONE_TIME_CHARGE": true, "SUBSCRIBED": true, "DID_RENEW": true, "REFUND": true, "REFUND_REVERSED": true, "TEST": true,
 		"EXPIRED": false, "DID_CHANGE_RENEWAL_STATUS": false, "DID_FAIL_TO_RENEW": false,
 	} {
-		if got := sendsToChat(typ); got != want {
+		if got := sendsToChat(typ, nil); got != want {
 			t.Errorf("sendsToChat(%s) = %v", typ, got)
 		}
+	}
+	if sendsToChat("SUBSCRIBED", &appstore.TransactionInfo{OfferType: 1}) {
+		t.Error("a free-trial start was sent to chat")
+	}
+	if !sendsToChat("SUBSCRIBED", &appstore.TransactionInfo{Price: 28000}) {
+		t.Error("a paid subscription was not sent to chat")
 	}
 }
 

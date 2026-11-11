@@ -113,7 +113,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		slog.Error("render html failed, fallback to text", "error", err)
 	}
 	err = h.Sender.Send(view.Subject, renderText(view), htmlBody)
-	if h.Chat != nil && sendsToChat(p.NotificationType) {
+	if h.Chat != nil && sendsToChat(p.NotificationType, tx) {
 		err = errors.Join(err, h.Chat.Send(view.Subject, renderChat(view), ""))
 	}
 	if err != nil {
