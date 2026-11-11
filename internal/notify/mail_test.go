@@ -197,10 +197,13 @@ func TestRenderChat(t *testing.T) {
 	i18n.Set("en")
 	v := buildView(scenarios()["purchase"])
 	got := renderChat(v)
-	for _, want := range []string{v.AmountNote, "Today: ", "This month: "} {
+	for _, want := range []string{v.AmountNote, "This month: "} {
 		if !strings.Contains(got, want) {
 			t.Errorf("chat body misses %q:\n%s", want, got)
 		}
+	}
+	if strings.Contains(got+v.Headline, "oday") {
+		t.Errorf("chat message reports the day:\n%s\n%s", v.Headline, got)
 	}
 	if strings.Contains(got, "Notification ID") {
 		t.Errorf("chat body carries notification metadata:\n%s", got)

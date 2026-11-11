@@ -20,6 +20,7 @@ type row struct{ K, V string }
 
 type mailView struct {
 	Subject    string
+	Headline   string // Subject without the daily sale counter: the first line of a chat message
 	AppName    string
 	Label      string
 	Sandbox    bool
@@ -213,6 +214,7 @@ func buildView(in mailInput) mailView {
 		}
 	}
 
+	v.Headline = strings.Join(subj, " ")
 	if s := in.Stats; s != nil {
 		v.StatsToday = formatPeriod(s.Today, in.Currency)
 		v.StatsMonth = formatPeriod(s.Month, in.Currency)
@@ -295,15 +297,15 @@ func sendsToChat(notificationType string, tx *appstore.TransactionInfo) bool {
 	return RevenueSign[notificationType] != 0 || notificationType == "TEST"
 }
 
-// renderChat is the body of a chat message; the subject already names the app, event,
-// amount and product.
+// renderChat is the body of a chat message; the headline already names the app, event,
+// amount and product. Chat reports the month only: daily counts are noise there.
 func renderChat(v mailView) string {
 	var lines []string
 	if v.AmountNote != "" {
 		lines = append(lines, v.AmountNote)
 	}
-	if v.StatsToday != "" {
-		lines = append(lines, v.L.Today+": "+v.StatsToday, v.L.Month+": "+v.StatsMonth)
+	if v.StatsMonth != "" {
+		lines = append(lines, v.L.Month+": "+v.StatsMonth)
 	}
 	return strings.Join(lines, "\n")
 }

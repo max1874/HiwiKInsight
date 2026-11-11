@@ -114,7 +114,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	err = h.Sender.Send(view.Subject, renderText(view), htmlBody)
 	if h.Chat != nil && sendsToChat(p.NotificationType, tx) {
-		err = errors.Join(err, h.Chat.Send(view.Subject, renderChat(view), ""))
+		err = errors.Join(err, h.Chat.Send(view.Headline, renderChat(view), ""))
 	}
 	if err != nil {
 		slog.Error("send notification failed, Apple will retry", "error", err, "notificationUUID", p.NotificationUUID)
