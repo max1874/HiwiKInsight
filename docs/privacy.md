@@ -36,7 +36,7 @@ App Store Server Notifications contain transaction data from Apple (product, pri
 | `open.er-api.com` | Exchange rates | The base currency code |
 | `api.appstoreconnect.apple.com` | Sales and analytics reports, released builds (only if configured) | Your API credentials |
 | Your SMTP server | Emails (only if configured) | Reports, alerts, transaction details |
-| Feishu or Lark (`feishu.base_url`) | Charge and refund messages (only if configured) | App name, product, amount, storefront, revenue totals |
+| Feishu or Lark (`feishu.base_url`) | Charge and refund messages, and sales report purchases of apps without notifications (only if configured) | App name, product, amount, storefront or country, revenue totals |
 
 ## Retention
 

@@ -3,10 +3,12 @@ package asc
 import (
 	"errors"
 	"log/slog"
+	"maps"
 	"math"
 	"strings"
 	"time"
 
+	"github.com/RedHiwiK/HiwiKInsight/internal/mailer"
 	"github.com/RedHiwiK/HiwiKInsight/internal/store"
 )
 
@@ -34,6 +36,12 @@ type Syncer struct {
 	store  *store.Store
 	fx     converter
 	now    func() time.Time
+
+	// Chat, when set, gets each new daily report's purchases and refunds of apps without a
+	// server notification URL (salesMessage); Currency is the base currency they are shown in.
+	Chat     mailer.Sender
+	Currency string
+	Names    map[string]string // config names of apps (by bundle ID) and products, shown instead of App Store names
 }
 
 func NewSyncer(c *Client, st *store.Store, fx converter) *Syncer {
@@ -69,10 +77,13 @@ func (s *Syncer) SyncOnce() (int, error) {
 	}
 	var rows []store.ASCApp
 	bySKU, byID := map[string]string{}, map[string]string{}
+	names, live := map[string]string{}, map[string]bool{}
 	for _, a := range apps {
 		rows = append(rows, store.ASCApp{AppleID: a.ID, BundleID: a.BundleID, SKU: a.SKU, Name: a.Name})
 		bySKU[a.SKU], byID[a.ID] = a.BundleID, a.BundleID
+		names[a.BundleID], live[a.BundleID] = a.Name, a.Notified
 	}
+	maps.Copy(names, s.Names)
 	if err := s.store.UpsertASCApps(rows); err != nil {
 		return 0, err
 	}
@@ -96,13 +107,14 @@ func (s *Syncer) SyncOnce() (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	backfill := len(done) == 0 // the first sync loads history, which is not news
 	for i := 1; i <= dailyBackfill; i++ {
 		d := today.AddDate(0, 0, -i)
 		period := d.Format("2006-01-02")
 		if st := done[period]; st == "ok" || st == "empty" || st == "gone" {
 			continue
 		}
-		ok, err := s.fetch("DAILY", period, i > 3, resolve)
+		recs, ok, err := s.fetch("DAILY", period, i > 3, resolve)
 		if errors.Is(err, ErrGone) {
 			break // older daily reports are past the retention period too
 		}
@@ -111,6 +123,15 @@ func (s *Syncer) SyncOnce() (int, error) {
 		}
 		if ok {
 			fetched++
+		}
+		if s.Chat != nil && !backfill && i <= announceDays {
+			if subject, body, ok := salesMessage(period, recs, names, live, s.Currency); ok {
+				if err := s.Chat.Send(subject, body, ""); err != nil {
+					slog.Error("sales message failed", "period", period, "error", err)
+				} else {
+					slog.Info("sales message sent", "period", period)
+				}
+			}
 		}
 	}
 
@@ -126,7 +147,7 @@ func (s *Syncer) SyncOnce() (int, error) {
 			continue
 		}
 		// Last month's report is usually generated in the first days of the next month; a 404 for older months means no sales that month
-		ok, err := s.fetch("MONTHLY", period, i > 1 || today.Day() > 10, resolve)
+		_, ok, err := s.fetch("MONTHLY", period, i > 1 || today.Day() > 10, resolve)
 		if errors.Is(err, ErrGone) {
 			break // older monthly reports are past the retention period too
 		}
@@ -140,29 +161,29 @@ func (s *Syncer) SyncOnce() (int, error) {
 	return fetched, nil
 }
 
-// fetch downloads and stores the report for one period. When settled is true a 404 is recorded as empty (never retried); otherwise it is left for the next run.
-func (s *Syncer) fetch(frequency, period string, settled bool, resolve func(SalesRow) string) (bool, error) {
+// fetch downloads and stores the report for one period and returns its rows. When settled is true a 404 is recorded as empty (never retried); otherwise it is left for the next run.
+func (s *Syncer) fetch(frequency, period string, settled bool, resolve func(SalesRow) string) ([]store.SalesRecord, bool, error) {
 	time.Sleep(requestGap)
 	rows, err := s.client.Sales(frequency, period)
 	if errors.Is(err, ErrGone) {
 		// Record it so later syncs never request this period again
 		if serr := s.store.ReplaceSales(frequency, period, "gone", nil); serr != nil {
-			return false, serr
+			return nil, false, serr
 		}
-		return false, ErrGone
+		return nil, false, ErrGone
 	}
 	if errors.Is(err, ErrNotFound) {
 		if settled {
-			return true, s.store.ReplaceSales(frequency, period, "empty", nil)
+			return nil, true, s.store.ReplaceSales(frequency, period, "empty", nil)
 		}
-		return false, nil
+		return nil, false, nil
 	}
 	if err != nil {
 		var ae *apiError
 		if errors.As(err, &ae) && ae.Status >= 500 && !settled {
-			return false, nil // Apple occasionally returns 5xx while the current report is still being generated
+			return nil, false, nil // Apple occasionally returns 5xx while the current report is still being generated
 		}
-		return false, err
+		return nil, false, err
 	}
 	recs := make([]store.SalesRecord, 0, len(rows))
 	for _, r := range rows {
@@ -183,5 +204,8 @@ func (s *Syncer) fetch(frequency, period string, settled bool, resolve func(Sale
 		}
 		recs = append(recs, rec)
 	}
-	return true, s.store.ReplaceSales(frequency, period, "ok", recs)
+	if err := s.store.ReplaceSales(frequency, period, "ok", recs); err != nil {
+		return nil, false, err
+	}
+	return recs, true, nil
 }

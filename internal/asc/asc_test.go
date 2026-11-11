@@ -18,6 +18,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/RedHiwiK/HiwiKInsight/internal/store"
 )
 
 const sampleReport = "Provider\tProvider Country\tSKU\tDeveloper\tTitle\tVersion\tProduct Type Identifier\tUnits\tDeveloper Proceeds\tBegin Date\tEnd Date\tCustomer Currency\tCountry Code\tCurrency of Proceeds\tApple Identifier\tCustomer Price\tPromo Code\tParent Identifier\tSubscription\tPeriod\n" +
@@ -157,5 +159,29 @@ func TestAggregateFunnel(t *testing.T) {
 	d := AggregateFunnel(ReportDownloads, rows)[FunnelKey{"2026-09-22", "1", "search", "CN"}]
 	if d == nil || d.FirstDownloads != 6 || d.Redownloads != 2 {
 		t.Errorf("downloads = %+v", d)
+	}
+}
+
+func TestSalesMessage(t *testing.T) {
+	p := func(v float64) *float64 { return &v }
+	recs := []store.SalesRecord{
+		{BundleID: "com.example.quiet", Title: "Unlock", Category: "iap", Units: 1, ProceedsPerUnit: 8.49, Proceeds: p(60.5), CustomerPrice: 9.99, CustomerCurrency: "EUR", Country: "NL"},
+		{BundleID: "com.example.quiet", Title: "Unlock", Category: "iap", Units: -1, ProceedsPerUnit: 8.49, Proceeds: p(-60.5), CustomerPrice: 9.99, CustomerCurrency: "EUR", Country: "DE"},
+		{BundleID: "com.example.quiet", Title: "Quiet", Category: "download", Units: 3},
+		{BundleID: "com.example.quiet", Title: "Pro", Category: "subscription", Units: 1, ProceedsPerUnit: 0}, // free trial
+		{BundleID: "com.example.live", Title: "Pro", Category: "subscription", Units: 1, ProceedsPerUnit: 1.49, Proceeds: p(10.6)},
+	}
+	names := map[string]string{"com.example.quiet": "Quiet", "com.example.live": "Live"}
+	live := map[string]bool{"com.example.live": true}
+	subject, body, ok := salesMessage("2026-11-09", recs, names, live, "CNY")
+	if !ok || !strings.Contains(subject, "2026-11-09") {
+		t.Fatalf("subject %q ok %v", subject, ok)
+	}
+	lines := strings.Split(body, "\n")
+	if len(lines) != 2 || !strings.Contains(lines[0], "NL") || !strings.Contains(lines[1], "DE") || strings.Contains(body, "Live") {
+		t.Fatalf("body %q", body)
+	}
+	if _, _, ok := salesMessage("2026-11-09", recs[2:], names, live, "CNY"); ok {
+		t.Fatal("downloads, free trials and apps with live notifications are not news")
 	}
 }

@@ -28,6 +28,8 @@ If sending fails, the notification endpoint returns HTTP 500 so Apple retries la
 
 With [`feishu`](configuration.md#feishu) configured, charges, refunds and Apple's test notification also go to one person through a Feishu or Lark bot, with today's and this month's totals. Free trial starts count, because they arrive as new subscriptions at price zero. Other notifications, reports and alerts stay in email. A failed message also returns HTTP 500, so while Feishu is down a retry can repeat the email.
 
+Apps without a server notification URL in App Store Connect (`subscriptionStatusUrl`, read at every sales sync) send no notifications, so their sales are only seen in the daily sales report. With both `feishu` and [`app_store_connect`](configuration.md) configured, each new daily report that has purchases or refunds of such apps (in-app purchases and subscriptions with a price; not downloads or free trials) becomes one message: app, product, country, proceeds in the base currency and what the customer paid. It arrives when the report does, usually the next morning Pacific Time plus up to the 6-hour sync interval. Only reports for the last 7 days are announced, and nothing during the first sync, which loads history. A failed message is logged and not retried.
+
 ## Daily and weekly reports
 
 | Setting | Default | Meaning |

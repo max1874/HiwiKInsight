@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net"
 	"net/http"
 	"os"
@@ -50,6 +51,7 @@ type Server struct {
 
 	writer   *store.Writer
 	sender   mailer.Sender
+	chat     mailer.Sender // Feishu or Lark, nil when not configured
 	rates    *fx.Rates
 	reports  *report.Scheduler
 	alerter  *report.Alerter
@@ -106,7 +108,8 @@ func New(cfg *config.Config) (*Server, error) {
 
 	notifier := notify.New(cfg, st, s.sender, s.rates)
 	if f := cfg.Feishu; f.Enabled() {
-		notifier.Chat = &feishu.Sender{BaseURL: f.BaseURL, AppID: f.AppID, AppSecret: f.AppSecret, OpenID: f.OpenID}
+		s.chat = &feishu.Sender{BaseURL: f.BaseURL, AppID: f.AppID, AppSecret: f.AppSecret, OpenID: f.OpenID}
+		notifier.Chat = s.chat
 	}
 	contexts := map[string]string{}
 	for _, a := range cfg.Apps {
@@ -190,7 +193,13 @@ func (s *Server) Start() {
 		slog.Error("app_store_connect disabled", "error", err)
 		return
 	}
-	go asc.NewSyncer(c, s.Store, s.rates).Loop()
+	syncer := asc.NewSyncer(c, s.Store, s.rates)
+	syncer.Chat, syncer.Currency, syncer.Names = s.chat, cfg.Currency, map[string]string{}
+	for _, a := range cfg.Apps {
+		syncer.Names[a.BundleID] = a.Name
+		maps.Copy(syncer.Names, a.Products)
+	}
+	go syncer.Loop()
 	// Released builds: production events from builds never released on the App Store are TestFlight data
 	releases := asc.NewReleases()
 	go releases.Loop(c, s.Store, s.appByKey)

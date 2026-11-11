@@ -157,12 +157,13 @@ type App struct {
 	BundleID string
 	SKU      string
 	Name     string
+	Notified bool // has a production App Store server notification URL, so its sales arrive live
 }
 
 // Apps lists every app in the account, used to map report rows to a bundle ID.
 func (c *Client) Apps() ([]App, error) {
 	var out []App
-	q := url.Values{"fields[apps]": {"bundleId,sku,name"}, "limit": {"200"}}
+	q := url.Values{"fields[apps]": {"bundleId,sku,name,subscriptionStatusUrl"}, "limit": {"200"}}
 	body, err := c.get("/v1/apps", q)
 	if err != nil {
 		return nil, err
@@ -174,6 +175,7 @@ func (c *Client) Apps() ([]App, error) {
 				BundleID string `json:"bundleId"`
 				SKU      string `json:"sku"`
 				Name     string `json:"name"`
+				URL      string `json:"subscriptionStatusUrl"`
 			} `json:"attributes"`
 		} `json:"data"`
 	}
@@ -181,7 +183,8 @@ func (c *Client) Apps() ([]App, error) {
 		return nil, err
 	}
 	for _, d := range resp.Data {
-		out = append(out, App{ID: d.ID, BundleID: d.Attributes.BundleID, SKU: d.Attributes.SKU, Name: d.Attributes.Name})
+		out = append(out, App{ID: d.ID, BundleID: d.Attributes.BundleID, SKU: d.Attributes.SKU, Name: d.Attributes.Name,
+			Notified: d.Attributes.URL != ""})
 	}
 	return out, nil
 }
